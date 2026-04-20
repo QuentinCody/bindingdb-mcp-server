@@ -103,16 +103,8 @@ export const bindingdbCatalog: ApiCatalog = {
                 { name: "cutoff", type: "number", required: false, description: "Affinity cap in nM." },
             ],
         },
-        {
-            method: "GET",
-            path: "/rest/getTrgSDFs",
-            summary: "Download ligand SDF bundles for a target (returns text; large payloads).",
-            category: "bulk",
-            queryParams: [
-                { name: "uniprot", type: "string", required: false, description: "UniProt accession." },
-                { name: "pdb", type: "string", required: false, description: "PDB identifier." },
-                { name: "cutoff", type: "number", required: false, description: "Affinity cap in nM." },
-            ],
-        },
+        // NOTE: /rest/getTrgSDFs was removed from the catalog on 2026-04-17 —
+        // upstream returned HTTP 404 across all test accessions (target names
+        // and UniProt IDs). Keep it out until BindingDB restores the endpoint.
     ],
 };

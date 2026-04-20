@@ -13,7 +13,20 @@ export function createBindingdbApiFetch(): ApiFetchFn {
             ...(request.params ?? {}),
         };
 
-        const response = await bindingdbFetch(request.path, params);
+        // BindingDB's REST endpoints require the `/rest/` prefix. Users sometimes
+        // write `api.get('/getLigandsByPDBs', ...)`; transparently rewrite.
+        let path = request.path;
+        if (
+            path.startsWith("/") &&
+            !path.startsWith("/rest/") &&
+            !path.startsWith("/axis2") &&
+            !path.startsWith("/bind/") &&
+            !path.startsWith("/databases/")
+        ) {
+            path = `/rest${path}`;
+        }
+
+        const response = await bindingdbFetch(path, params);
 
         if (!response.ok) {
             let errorBody: string;
