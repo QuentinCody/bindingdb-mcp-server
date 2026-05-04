@@ -38,8 +38,20 @@ console.log(`${BLUE}🧪 BindingDB Structured Content Regression Tests${RESET}`)
 
 const toolExpectations = [
   {
-    path: 'src/tools/search.ts',
-    required: ['createCodeModeResponse', 'createCodeModeError'],
+    path: 'src/tools/code-mode.ts',
+    required: ['createSearchTool', 'createExecuteTool', 'bindingdbCatalog'],
+  },
+  {
+    path: 'src/tools/query-data.ts',
+    required: ['createQueryDataHandler', 'bindingdb_query_data', 'BINDINGDB_DATA_DO'],
+  },
+  {
+    path: 'src/tools/get-schema.ts',
+    required: ['createGetSchemaHandler', 'bindingdb_get_schema', 'BINDINGDB_DATA_DO'],
+  },
+  {
+    path: 'src/spec/catalog.ts',
+    required: ['bindingdbCatalog', '/rest/getLigandsByPDBs'],
   },
 ];
 
