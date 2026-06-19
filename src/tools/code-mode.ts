@@ -20,6 +20,8 @@ export function registerCodeMode(server: McpServer, env: CodeModeEnv): void {
 
     const executeTool = createExecuteTool({
         prefix: "bindingdb",
+        // Verifiable provenance: bindingdb_execute results carry a _meta.citation.
+        source: { id: "bindingdb", name: "BindingDB", url: "https://www.bindingdb.org", license: "CC BY 3.0" },
         catalog: bindingdbCatalog,
         apiFetch,
         doNamespace: env.BINDINGDB_DATA_DO,
