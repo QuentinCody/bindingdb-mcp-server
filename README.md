@@ -2,7 +2,7 @@
 
 MCP server wrapping the [BindingDB REST API](https://bindingdb.org/rwd/bind/BindingDB_REST.jsp) — a public database of measured binding affinities of drug-like molecules to protein targets.
 
-Runs on Cloudflare Workers. Exposes four Code Mode tools (`bindingdb_search`, `bindingdb_execute`, `bindingdb_query_data`, `bindingdb_get_schema`) plus a convenience `bindingdb_ligands_by_pdb`.
+Runs on Cloudflare Workers. Exposes four Code Mode tools: `bindingdb_search`, `bindingdb_execute`, `bindingdb_query_data`, `bindingdb_get_schema`.
 
 - Upstream docs: https://bindingdb.org/rwd/bind/BindingDB_REST.jsp
 - Base URL: `https://bindingdb.org`
