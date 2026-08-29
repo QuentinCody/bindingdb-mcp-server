@@ -10,7 +10,7 @@ export const bindingdbCatalog: ApiCatalog = {
     baseUrl: "https://bindingdb.org",
     version: "v1",
     auth: "none",
-    endpointCount: 9,
+    endpointCount: 8,
     notes:
         "- The adapter injects `response=application/json` automatically; XML is the upstream default.\n" +
         "- Empty-result queries may return an empty body (200 OK, no text) — the adapter maps this to `{}`.\n" +
