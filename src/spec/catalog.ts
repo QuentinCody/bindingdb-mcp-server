@@ -1,4 +1,6 @@
 import type { ApiCatalog } from "@bio-mcp/shared/codemode/catalog";
+import { downloadEndpoints, downloadWorkflows } from "./downloads";
+import { compoundHandoffWorkflow } from "./compound-handoff";
 
 /**
  * BindingDB REST API catalog.
@@ -10,15 +12,19 @@ export const bindingdbCatalog: ApiCatalog = {
     baseUrl: "https://bindingdb.org",
     version: "v1",
     auth: "none",
-    endpointCount: 8,
+    endpointCount: 4 + downloadEndpoints.length,
+    workflows: [...downloadWorkflows, compoundHandoffWorkflow],
     notes:
+        "- Publication/curation dates are advertised for bulk/search results, not guaranteed in REST. Use /bulk/releases and /bulk/manifest for dated assets.\n" +
         "- The adapter injects `response=application/json` automatically; XML is the upstream default.\n" +
         "- Empty-result queries may return an empty body (200 OK, no text) — the adapter maps this to `{}`.\n" +
-        "- Similarity searches (getLigandsBySmiles) work best with small result caps; broader lookups tolerate ~10.\n" +
+        "- These REST services do not document generic limit/offset pagination; do not assume an arbitrary client cap is supported.\n" +
         "- `cutoff` on PDB-based endpoints is an affinity cap in nM (e.g. 100 nM); `identity` is a percent sequence-identity cutoff.\n" +
-        "- `cutoff` on Smiles similarity is a Tanimoto coefficient (0.0–1.0, e.g. 0.85 / 0.9).\n" +
+        "- `cutoff` on getTargetByCompound is a similarity coefficient (0.0–1.0, e.g. 0.85).\n" +
+        "- getLigandsBySmiles, getTargetsByCompound, getLigandsByPDB and getLigandsByTarget returned 404 in native acceptance on 2026-10-04 and are excluded from discovery.\n" +
         "- Some paths use plural forms (`PDBs`, `Uniprots`) — stick to the casings in this catalog.",
     endpoints: [
+        ...downloadEndpoints,
         {
             method: "GET",
             path: "/rest/getLigandsByPDBs",
@@ -28,6 +34,7 @@ export const bindingdbCatalog: ApiCatalog = {
                 { name: "pdb", type: "string", required: true, description: "Comma-separated PDB identifier(s), e.g. '1Q0L' or '1Q0L,1E0Y'." },
                 { name: "cutoff", type: "number", required: false, description: "Affinity cap in nM (e.g. 100)." },
                 { name: "identity", type: "number", required: false, description: "Sequence identity cutoff percent (e.g. 92)." },
+                { name: "response", type: "string", required: false, description: "Output format: application/json (adapter default) or application/xml." },
             ],
         },
         {
@@ -38,69 +45,29 @@ export const bindingdbCatalog: ApiCatalog = {
             queryParams: [
                 { name: "uniprot", type: "string", required: true, description: "Comma-separated UniProt accession(s), e.g. 'P00533'." },
                 { name: "cutoff", type: "number", required: false, description: "Affinity cap in nM." },
+                { name: "response", type: "string", required: false, description: "Output format: application/json (adapter default) or application/xml." },
             ],
         },
         {
             method: "GET",
             path: "/rest/getLigandsByUniprot",
-            summary: "Ligands for a single UniProt target (legacy singular form).",
+            summary: "Legacy singular UniProt form; prefer /rest/getLigandsByUniprots.",
+            usageHint: "Encode accession and cutoff together as uniprot=P35355;100, as in the provider example. JSON output was verified for that request. Prefer the plural route for separate cutoff parameters.",
             category: "ligands",
             queryParams: [
-                { name: "uniprot", type: "string", required: true, description: "UniProt accession." },
-                { name: "cutoff", type: "number", required: false, description: "Affinity cap in nM." },
-            ],
-        },
-        {
-            method: "GET",
-            path: "/rest/getLigandsBySmiles",
-            summary: "Similarity search: find ligands similar to a query SMILES string.",
-            category: "similarity",
-            queryParams: [
-                { name: "smiles", type: "string", required: true, description: "Query SMILES string (e.g. 'CC(=O)OC1=CC=CC=C1C(=O)O' for aspirin)." },
-                { name: "cutoff", type: "number", required: false, description: "Tanimoto similarity cutoff 0.0–1.0 (e.g. 0.85)." },
-            ],
-        },
-        {
-            method: "GET",
-            path: "/rest/getTargetsByCompound",
-            summary: "Find targets for a compound (by BindingDB monomer ID or SMILES).",
-            category: "targets",
-            queryParams: [
-                { name: "monomerid", type: "string", required: false, description: "BindingDB monomer ID (e.g. '50000001')." },
-                { name: "smiles", type: "string", required: false, description: "Query SMILES (alternative to monomerid)." },
-                { name: "cutoff", type: "number", required: false, description: "Affinity cap in nM." },
+                { name: "uniprot", type: "string", required: true, description: "Accession with optional semicolon-delimited affinity cutoff, e.g. P35355;100." },
+                { name: "response", type: "string", required: false, description: "Output format: application/json (adapter default) or application/xml." },
             ],
         },
         {
             method: "GET",
             path: "/rest/getTargetByCompound",
-            summary: "Legacy singular form of getTargetsByCompound.",
+            summary: "Find targets and affinities for compounds similar to the supplied SMILES (documented singular REST form).",
             category: "targets",
             queryParams: [
-                { name: "monomerid", type: "string", required: false, description: "BindingDB monomer ID." },
-                { name: "smiles", type: "string", required: false, description: "Query SMILES." },
-                { name: "cutoff", type: "number", required: false, description: "Affinity cap in nM." },
-            ],
-        },
-        {
-            method: "GET",
-            path: "/rest/getLigandsByPDB",
-            summary: "Ligands for a single PDB structure (singular form).",
-            category: "ligands",
-            queryParams: [
-                { name: "pdb", type: "string", required: true, description: "PDB identifier." },
-                { name: "cutoff", type: "number", required: false, description: "Affinity cap in nM." },
-                { name: "identity", type: "number", required: false, description: "Sequence identity cutoff percent." },
-            ],
-        },
-        {
-            method: "GET",
-            path: "/rest/getLigandsByTarget",
-            summary: "Ligands by free-text target name (gene/protein name).",
-            category: "ligands",
-            queryParams: [
-                { name: "target", type: "string", required: true, description: "Target name (gene/protein)." },
-                { name: "cutoff", type: "number", required: false, description: "Affinity cap in nM." },
+                { name: "smiles", type: "string", required: true, description: "Query SMILES; matches may be similar compounds, not exact identity." },
+                { name: "cutoff", type: "number", required: false, description: "Structure similarity coefficient (0–1, e.g. 0.85), not an affinity cap." },
+                { name: "response", type: "string", required: false, description: "Output format: application/json (adapter default) or application/xml." },
             ],
         },
         // NOTE: /rest/getTrgSDFs was removed from the catalog on 2026-04-17 —

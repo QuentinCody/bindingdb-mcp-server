@@ -1,5 +1,5 @@
-import { restFetch } from "@bio-mcp/shared/http/rest-fetch";
 import type { RestFetchOptions } from "@bio-mcp/shared/http/rest-fetch";
+import { restFetch } from "@bio-mcp/shared/http/rest-fetch";
 
 const BINDINGDB_BASE = "https://bindingdb.org";
 

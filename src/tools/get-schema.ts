@@ -1,6 +1,7 @@
 import type { McpServer } from "@bio-mcp/shared/mcp";
-import { z } from "zod";
 import { createGetSchemaHandler } from "@bio-mcp/shared/staging/utils";
+import { z } from "zod";
+import { bindingdbResponse } from "../lib/tool-result";
 
 interface SchemaEnv {
     BINDINGDB_DATA_DO?: unknown;
@@ -9,8 +10,8 @@ interface SchemaEnv {
 export function registerGetSchema(server: McpServer, env?: SchemaEnv): void {
     const handler = createGetSchemaHandler("BINDINGDB_DATA_DO", "bindingdb");
 
-    server.registerTool(
-        "bindingdb_get_schema",
+    for (const name of ["bindingdb_get_schema", "mcp_bindingdb_get_schema"]) server.registerTool(
+        name,
         {
             title: "Get Staged Data Schema",
             description:
@@ -24,11 +25,11 @@ export function registerGetSchema(server: McpServer, env?: SchemaEnv): void {
         },
         async (args, extra) => {
             const runtimeEnv = env || (extra as { env?: SchemaEnv })?.env || {};
-            return handler(
+            return bindingdbResponse(() => handler(
                 args as Record<string, unknown>,
                 runtimeEnv as Record<string, unknown>,
                 (extra as Record<string, unknown>),
-            );
+            ), runtimeEnv, name, extra, args);
         },
     );
 }

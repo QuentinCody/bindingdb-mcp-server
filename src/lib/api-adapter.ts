@@ -1,4 +1,6 @@
 import type { ApiFetchFn } from "@bio-mcp/shared/codemode/catalog";
+import { bindingdbFailure } from "./download-read";
+import { downloads, readText } from "./downloads";
 import { bindingdbFetch } from "./http";
 
 /**
@@ -8,6 +10,10 @@ import { bindingdbFetch } from "./http";
  */
 export function createBindingdbApiFetch(): ApiFetchFn {
     return async (request) => {
+        if (request.method.toUpperCase() !== "GET" || request.body !== undefined) {
+            throw bindingdbFailure("BindingDB supports GET without a body", 405);
+        }
+        if (request.path.startsWith("/bulk/")) return { status: 200, data: await downloads(request.path, request.params ?? {}) };
         const params: Record<string, unknown> = {
             response: "application/json",
             ...(request.params ?? {}),
@@ -26,25 +32,11 @@ export function createBindingdbApiFetch(): ApiFetchFn {
             path = `/rest${path}`;
         }
 
+        const deadlineAt = Date.now() + 45_000;
         const response = await bindingdbFetch(path, params);
 
-        if (!response.ok) {
-            let errorBody: string;
-            try {
-                errorBody = await response.text();
-            } catch {
-                errorBody = response.statusText;
-            }
-            const error = new Error(
-                `HTTP ${response.status}: ${errorBody.slice(0, 200)}`,
-            ) as Error & { status: number; data: unknown };
-            error.status = response.status;
-            error.data = errorBody;
-            throw error;
-        }
-
         const contentType = response.headers.get("content-type") || "";
-        const text = await response.text();
+        const text = await readText(response, 2 * 1024 * 1024, deadlineAt);
 
         // BindingDB returns an empty body for zero-result queries. Don't crash.
         if (!text || text.trim() === "") {
@@ -58,8 +50,13 @@ export function createBindingdbApiFetch(): ApiFetchFn {
         try {
             return { status: response.status, data: JSON.parse(text) };
         } catch {
-            // Malformed JSON or non-JSON masquerading as JSON — surface as text.
-            return { status: response.status, data: text };
+            // A JSON content-type with an unparseable body is an upstream failure,
+            // not data: surface it as an error instead of a successful text payload.
+            throw bindingdbFailure("BindingDB returned invalid JSON", 502, {
+                response: text.slice(0, 2_000),
+                upstream_status: response.status,
+                content_type: contentType,
+            });
         }
     };
 }
